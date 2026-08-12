@@ -55,15 +55,24 @@ export default async function ResumePage() {
                         {(resume.fileSize / 1024 / 1024).toFixed(2)} MB • Status: <span className="font-medium text-slate-700 dark:text-slate-300">{resume.status}</span>
                       </p>
                     </div>
-                    <form action={async () => {
-                      "use server"
-                      const { deleteResume } = await import("./actions")
-                      await deleteResume(resume.id)
-                    }}>
-                      <Button variant="ghost" size="sm" type="submit" className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
-                        Delete
-                      </Button>
-                    </form>
+                    <div className="flex items-center gap-2">
+                      {resume.status === 'REVIEW_REQUIRED' && (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/profile/resume/review?id=${resume.id}`}>
+                            Review Data
+                          </Link>
+                        </Button>
+                      )}
+                      <form action={async () => {
+                        "use server"
+                        const { deleteResume } = await import("./actions")
+                        await deleteResume(resume.id)
+                      }}>
+                        <Button variant="ghost" size="sm" type="submit" className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                          Delete
+                        </Button>
+                      </form>
+                    </div>
                   </div>
                 ))}
               </div>
