@@ -22,6 +22,8 @@ import { useRouter } from "next/navigation"
 
 import { SkillsEditor } from "@/components/profile/skills-editor"
 import { ProjectsEditor, ProjectData } from "@/components/profile/projects-editor"
+import { ExperienceEditor, ExperienceData } from "@/components/profile/experience-editor"
+import { EducationEditor, EducationData } from "@/components/profile/education-editor"
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -37,6 +39,8 @@ const profileSchema = z.object({
   portfolioUrl: z.string().url().optional().nullable().or(z.literal("")),
   skills: z.array(z.string()).default([]),
   projects: z.array(z.any()).default([]),
+  experiences: z.array(z.any()).default([]),
+  educations: z.array(z.any()).default([]),
 })
 
 type ProfileFormProps = {
@@ -64,6 +68,8 @@ export function ProfileForm({ initialData, userId }: ProfileFormProps) {
       portfolioUrl: initialData?.portfolioUrl || "",
       skills: initialData?.skills || [],
       projects: initialData?.projects || [],
+      experiences: initialData?.experiences || [],
+      educations: initialData?.educations || [],
     },
   })
 
@@ -152,6 +158,30 @@ export function ProfileForm({ initialData, userId }: ProfileFormProps) {
             <FormControl>
               <ProjectsEditor 
                 projects={field.value} 
+                onChange={field.onChange} 
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField control={form.control} name="experiences" render={({ field }) => (
+          <FormItem>
+            <FormControl>
+              <ExperienceEditor 
+                experiences={field.value} 
+                onChange={field.onChange} 
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField control={form.control} name="educations" render={({ field }) => (
+          <FormItem>
+            <FormControl>
+              <EducationEditor 
+                educations={field.value} 
                 onChange={field.onChange} 
               />
             </FormControl>

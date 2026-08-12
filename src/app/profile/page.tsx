@@ -16,7 +16,7 @@ export default async function ProfilePage() {
   // Fetch existing profile data from Prisma
   let profile = await prisma.profile.findUnique({
     where: { userId: user.id },
-    include: { projects: true }
+    include: { projects: true, experiences: true, educations: true }
   })
 
   // Phase 1 Fix: Fallback to user.name if empty

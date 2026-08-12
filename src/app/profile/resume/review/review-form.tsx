@@ -11,6 +11,8 @@ import { confirmResumeReview } from "./actions"
 
 import { SkillsEditor } from "@/components/profile/skills-editor"
 import { ProjectsEditor, ProjectData } from "@/components/profile/projects-editor"
+import { ExperienceEditor, ExperienceData } from "@/components/profile/experience-editor"
+import { EducationEditor, EducationData } from "@/components/profile/education-editor"
 
 export function ReviewForm({ resumeId, parsedData, existingProfile }: { resumeId: string, parsedData: any, existingProfile: any }) {
   const router = useRouter()
@@ -30,6 +32,8 @@ export function ReviewForm({ resumeId, parsedData, existingProfile }: { resumeId
     portfolioUrl: existingProfile?.portfolioUrl || parsedData?.links?.portfolio || "",
     skills: existingProfile?.skills?.length ? existingProfile.skills : (parsedData?.skills || []),
     projects: existingProfile?.projects?.length ? existingProfile.projects : (parsedData?.projects || []),
+    experiences: existingProfile?.experiences?.length ? existingProfile.experiences : (parsedData?.experience || []),
+    educations: existingProfile?.educations?.length ? existingProfile.educations : (parsedData?.education || []),
   })
 
   const handleUseAiValue = (field: keyof typeof formData, aiValue: any) => {
@@ -130,6 +134,24 @@ export function ReviewForm({ resumeId, parsedData, existingProfile }: { resumeId
       </div>
 
       <div className="mt-8">
+        <h2 className="text-lg font-semibold">Work Experience</h2>
+        <ExperienceEditor 
+          experiences={formData.experiences}
+          onChange={(e) => handleChange('experiences', e)}
+          aiExperiences={existingProfile?.experiences?.length ? parsedData?.experience : undefined}
+        />
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold">Education</h2>
+        <EducationEditor 
+          educations={formData.educations}
+          onChange={(e) => handleChange('educations', e)}
+          aiEducations={existingProfile?.educations?.length ? parsedData?.education : undefined}
+        />
+      </div>
+
+      <div className="mt-8">
         <h2 className="text-lg font-semibold">Skills & Projects</h2>
         <SkillsEditor 
           skills={formData.skills} 
@@ -141,18 +163,6 @@ export function ReviewForm({ resumeId, parsedData, existingProfile }: { resumeId
           onChange={(p) => handleChange('projects', p)}
           aiProjects={existingProfile?.projects?.length ? parsedData?.projects : undefined}
         />
-      </div>
-
-      <div className="mt-8">
-        <h3 className="text-md font-medium mb-2">Other Data Extracted (Phase 2 Preview)</h3>
-        <p className="text-sm text-muted-foreground mb-4">Education and Work Experience have been parsed and securely stored in the database for upcoming features.</p>
-        <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded text-xs font-mono overflow-auto max-h-[200px]">
-          {JSON.stringify({ 
-            education: parsedData?.education, 
-            experience: parsedData?.experience,
-            achievements: parsedData?.achievements
-          }, null, 2)}
-        </div>
       </div>
 
       <div className="flex justify-end gap-4 pt-6 mt-8 border-t">

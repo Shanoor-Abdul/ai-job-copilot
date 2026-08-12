@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Trash2 } from "lucide-react"
 
+import { MonthYearPicker } from "@/components/ui/month-year-picker"
+
 export type ProjectData = {
   id?: string;
   name: string;
@@ -91,22 +93,20 @@ export function ProjectsEditor({ projects, onChange, aiProjects }: ProjectsEdito
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>Start Date (Month/Year) <span className="text-red-500">*</span></Label>
-                    <Input 
-                      value={project.startDate || ''} 
-                      onChange={(e) => handleUpdateProject(index, 'startDate', e.target.value)}
-                      className={missingStart ? 'border-red-500' : ''}
-                      placeholder="e.g. Jan 2023"
+                    <Label>Start Date <span className="text-red-500">*</span></Label>
+                    <MonthYearPicker 
+                      value={project.startDate} 
+                      onChange={(val) => handleUpdateProject(index, 'startDate', val)}
+                      error={missingStart}
                     />
                     {missingStart && <p className="text-xs text-red-500 mt-1">Start date is required.</p>}
                   </div>
                   <div>
-                    <Label>End Date (Month/Year) <span className="text-red-500">*</span></Label>
-                    <Input 
-                      value={project.endDate || ''} 
-                      onChange={(e) => handleUpdateProject(index, 'endDate', e.target.value)}
-                      className={missingEnd ? 'border-red-500' : ''}
-                      placeholder="e.g. Present or Dec 2023"
+                    <Label>End Date <span className="text-red-500">*</span></Label>
+                    <MonthYearPicker 
+                      value={project.endDate} 
+                      onChange={(val) => handleUpdateProject(index, 'endDate', val)}
+                      error={missingEnd}
                     />
                     {missingEnd && <p className="text-xs text-red-500 mt-1">End date is required.</p>}
                   </div>

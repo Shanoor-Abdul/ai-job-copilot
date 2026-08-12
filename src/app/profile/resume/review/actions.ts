@@ -74,6 +74,47 @@ export async function confirmResumeReview(resumeId: string, confirmedData: any) 
     }
   }
 
+  // Re-create experiences
+  if (confirmedData.experiences && Array.isArray(confirmedData.experiences)) {
+    await prisma.experience.deleteMany({
+      where: { profileId: profile.id }
+    })
+    
+    if (confirmedData.experiences.length > 0) {
+      await prisma.experience.createMany({
+        data: confirmedData.experiences.map((e: any) => ({
+          profileId: profile.id,
+          company: e.company,
+          title: e.title,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          description: e.description,
+          technologies: e.technologies || []
+        }))
+      })
+    }
+  }
+
+  // Re-create educations
+  if (confirmedData.educations && Array.isArray(confirmedData.educations)) {
+    await prisma.education.deleteMany({
+      where: { profileId: profile.id }
+    })
+    
+    if (confirmedData.educations.length > 0) {
+      await prisma.education.createMany({
+        data: confirmedData.educations.map((e: any) => ({
+          profileId: profile.id,
+          institution: e.institution,
+          degree: e.degree,
+          fieldOfStudy: e.fieldOfStudy,
+          startDate: e.startDate,
+          endDate: e.endDate,
+        }))
+      })
+    }
+  }
+
   // Mark Resume as COMPLETED
   await prisma.resume.update({
     where: { id: resumeId },

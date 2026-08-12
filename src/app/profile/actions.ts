@@ -67,6 +67,47 @@ export async function updateProfile(userId: string, data: any) {
       }
     }
 
+    // Re-create experiences
+    if (data.experiences && Array.isArray(data.experiences)) {
+      await prisma.experience.deleteMany({
+        where: { profileId: profile.id }
+      })
+      
+      if (data.experiences.length > 0) {
+        await prisma.experience.createMany({
+          data: data.experiences.map((e: any) => ({
+            profileId: profile.id,
+            company: e.company,
+            title: e.title,
+            startDate: e.startDate,
+            endDate: e.endDate,
+            description: e.description,
+            technologies: e.technologies || []
+          }))
+        })
+      }
+    }
+
+    // Re-create educations
+    if (data.educations && Array.isArray(data.educations)) {
+      await prisma.education.deleteMany({
+        where: { profileId: profile.id }
+      })
+      
+      if (data.educations.length > 0) {
+        await prisma.education.createMany({
+          data: data.educations.map((e: any) => ({
+            profileId: profile.id,
+            institution: e.institution,
+            degree: e.degree,
+            fieldOfStudy: e.fieldOfStudy,
+            startDate: e.startDate,
+            endDate: e.endDate,
+          }))
+        })
+      }
+    }
+
     // Update onboarding status
     await prisma.user.update({
       where: { id: userId },
