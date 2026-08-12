@@ -36,8 +36,8 @@ export default async function ResumePage() {
       
       <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full space-y-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Your Resume</h1>
-          <p className="text-muted-foreground mt-2">Upload your resume to generate your AI profile. (AI generation coming in Phase 2)</p>
+          <h1 className="text-3xl font-bold tracking-tight">Your Resumes</h1>
+          <p className="text-muted-foreground mt-2">Upload your resume to automatically generate your AI profile.</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border p-6">
@@ -45,16 +45,25 @@ export default async function ResumePage() {
           
           {resumes.length > 0 && (
             <div className="mt-8 pt-8 border-t">
-              <h2 className="text-xl font-semibold mb-4">Uploaded Resumes</h2>
+              <h2 className="text-xl font-semibold mb-4">Resume History</h2>
               <div className="space-y-4">
                 {resumes.map((resume) => (
                   <div key={resume.id} className="flex items-center justify-between p-4 border rounded-md">
                     <div>
                       <p className="font-medium">{resume.fileName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {(resume.fileSize / 1024 / 1024).toFixed(2)} MB • Status: {resume.status}
+                        {(resume.fileSize / 1024 / 1024).toFixed(2)} MB • Status: <span className="font-medium text-slate-700 dark:text-slate-300">{resume.status}</span>
                       </p>
                     </div>
+                    <form action={async () => {
+                      "use server"
+                      const { deleteResume } = await import("./actions")
+                      await deleteResume(resume.id)
+                    }}>
+                      <Button variant="ghost" size="sm" type="submit" className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                        Delete
+                      </Button>
+                    </form>
                   </div>
                 ))}
               </div>

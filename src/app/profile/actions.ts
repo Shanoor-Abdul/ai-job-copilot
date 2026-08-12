@@ -13,36 +13,59 @@ export async function updateProfile(userId: string, data: any) {
   }
 
   try {
-    await prisma.profile.upsert({
-      where: { userId },
+    const profile = await prisma.profile.upsert({
+      where: { userId: user.id },
       update: {
-        firstName: data.firstName || null,
-        lastName: data.lastName || null,
-        phone: data.phone || null,
-        currentTitle: data.currentTitle || null,
-        yearsOfExperience: data.yearsOfExperience || null,
-        summary: data.summary || null,
-        country: data.country || null,
-        city: data.city || null,
-        linkedinUrl: data.linkedinUrl || null,
-        githubUrl: data.githubUrl || null,
-        portfolioUrl: data.portfolioUrl || null,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        currentTitle: data.currentTitle,
+        yearsOfExperience: data.yearsOfExperience,
+        summary: data.summary,
+        country: data.country,
+        city: data.city,
+        linkedinUrl: data.linkedinUrl,
+        githubUrl: data.githubUrl,
+        portfolioUrl: data.portfolioUrl,
+        skills: data.skills || [],
       },
       create: {
-        userId,
-        firstName: data.firstName || null,
-        lastName: data.lastName || null,
-        phone: data.phone || null,
-        currentTitle: data.currentTitle || null,
-        yearsOfExperience: data.yearsOfExperience || null,
-        summary: data.summary || null,
-        country: data.country || null,
-        city: data.city || null,
-        linkedinUrl: data.linkedinUrl || null,
-        githubUrl: data.githubUrl || null,
-        portfolioUrl: data.portfolioUrl || null,
+        userId: user.id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        currentTitle: data.currentTitle,
+        yearsOfExperience: data.yearsOfExperience,
+        summary: data.summary,
+        country: data.country,
+        city: data.city,
+        linkedinUrl: data.linkedinUrl,
+        githubUrl: data.githubUrl,
+        portfolioUrl: data.portfolioUrl,
+        skills: data.skills || [],
       }
     })
+
+    // Re-create projects
+    if (data.projects && Array.isArray(data.projects)) {
+      await prisma.project.deleteMany({
+        where: { profileId: profile.id }
+      })
+      
+      if (data.projects.length > 0) {
+        await prisma.project.createMany({
+          data: data.projects.map((p: any) => ({
+            profileId: profile.id,
+            name: p.name,
+            description: p.description,
+            startDate: p.startDate,
+            endDate: p.endDate,
+            url: p.url,
+            technologies: p.technologies || []
+          }))
+        })
+      }
+    }
 
     // Update onboarding status
     await prisma.user.update({

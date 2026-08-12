@@ -43,8 +43,28 @@ model Profile {
   githubUrl         String?
   portfolioUrl      String?
   
+  skills            String[] @default([])
+  achievements      String[] @default([])
+  projects          Project[]
+  
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  startDate   String?
+  endDate     String?
+  url         String?
+  technologies String[] @default([])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Resume {
@@ -58,13 +78,33 @@ model Resume {
   storagePath String
   status      ResumeStatus @default(UPLOADED)
   
+  parsedData  ParsedResumeData?
+  
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model ParsedResumeData {
+  id               String   @id @default(cuid())
+  resumeId         String   @unique
+  resume           Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  
+  // Raw parsed JSON
+  extractedData    Json
+  
+  processingTimeMs Int?
+  confidenceScore  Float?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 enum ResumeStatus {
   UPLOADED
   PROCESSING
   PROCESSED
+  PARSED
+  REVIEW_REQUIRED
+  COMPLETED
   FAILED
 }

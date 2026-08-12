@@ -14,9 +14,23 @@ export default async function ProfilePage() {
   }
 
   // Fetch existing profile data from Prisma
-  const profile = await prisma.profile.findUnique({
-    where: { userId: user.id }
+  let profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+    include: { projects: true }
   })
+
+  // Phase 1 Fix: Fallback to user.name if empty
+  if (profile && !profile.firstName && !profile.lastName && user.user_metadata?.full_name) {
+    const nameParts = user.user_metadata.full_name.split(" ")
+    profile.firstName = nameParts[0] || ""
+    profile.lastName = nameParts.slice(1).join(" ") || ""
+  } else if (!profile && user.user_metadata?.full_name) {
+    const nameParts = user.user_metadata.full_name.split(" ")
+    profile = {
+      firstName: nameParts[0] || "",
+      lastName: nameParts.slice(1).join(" ") || "",
+    } as any
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">

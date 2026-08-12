@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^4.0.28",
     "@base-ui/react": "^1.7.0",
     "@hookform/resolvers": "^5.7.1",
     "@prisma/adapter-pg": "^7.9.1",
@@ -18,11 +19,14 @@
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.101.4",
+    "ai": "^7.0.62",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.31.0",
+    "mammoth": "^1.12.1",
     "next": "16.3.0",
     "next-themes": "^0.4.6",
+    "pdf2json": "^4.0.3",
     "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",

@@ -2,14 +2,16 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { UploadCloud, File, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { UploadCloud, File, AlertCircle, CheckCircle2, Loader2, FileText } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { saveResumeMetadata } from "./actions"
+import { saveResumeMetadata, processUploadedResume } from "./actions"
+import { useRouter } from "next/navigation"
 
 export function ResumeUpload({ userId }: { userId: string }) {
   const [file, setFile] = useState<File | null>(null)
-  const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
+  const [status, setStatus] = useState<"idle" | "uploading" | "processing" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
+  const router = useRouter()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -20,6 +22,14 @@ export function ResumeUpload({ userId }: { userId: string }) {
         setErrorMessage("File exceeds 10MB limit")
         return
       }
+      
+      const ext = selected.name.toLowerCase()
+      if (!ext.endsWith('.pdf') && !ext.endsWith('.docx') && !ext.endsWith('.doc')) {
+        setStatus("error")
+        setErrorMessage("Unsupported file type. Please upload: PDF or DOCX")
+        return
+      }
+
       setFile(selected)
       setStatus("idle")
     }
@@ -36,8 +46,6 @@ export function ResumeUpload({ userId }: { userId: string }) {
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
       const filePath = `resumes/${userId}/${fileName}`
 
-      // Upload to Supabase Storage (assuming 'resumes' bucket exists, if not it will fail, 
-      // but we handle error gracefully)
       const { error: uploadError } = await supabase.storage
         .from("resumes")
         .upload(filePath, file)
@@ -46,8 +54,7 @@ export function ResumeUpload({ userId }: { userId: string }) {
         throw new Error(uploadError.message)
       }
 
-      // Save metadata to database
-      await saveResumeMetadata({
+      const resumeId = await saveResumeMetadata({
         userId,
         fileName: file.name,
         fileType: file.type || "application/octet-stream",
@@ -55,12 +62,23 @@ export function ResumeUpload({ userId }: { userId: string }) {
         storagePath: filePath,
       })
 
+      setStatus("processing")
+      const processResult = await processUploadedResume(resumeId)
+
+      if (!processResult.success) {
+        throw new Error(processResult.error || "Failed to analyze resume")
+      }
+
       setStatus("success")
       setFile(null)
+      
+      // Navigate to review screen
+      router.push(`/profile/resume/review?id=${resumeId}`)
+      
     } catch (err: any) {
       console.error(err)
       setStatus("error")
-      setErrorMessage(err.message || "Failed to upload resume. (Make sure 'resumes' bucket exists in Supabase)")
+      setErrorMessage(err.message || "An unexpected error occurred")
     }
   }
 
@@ -71,7 +89,7 @@ export function ResumeUpload({ userId }: { userId: string }) {
         <h3 className="font-semibold text-lg">Upload Resume</h3>
         <p className="text-sm text-muted-foreground mt-1 mb-4">
           Drag & Drop or Browse Files<br />
-          Supported: PDF, DOC, DOCX (Max: 10MB)
+          Supported: PDF, DOCX (Max: 10MB)
         </p>
         
         <input 
@@ -92,18 +110,12 @@ export function ResumeUpload({ userId }: { userId: string }) {
             <File className="h-5 w-5 text-primary" />
             <div className="text-sm font-medium">{file.name}</div>
           </div>
-          <Button onClick={handleUpload} disabled={status === "uploading"}>
-            {status === "uploading" ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
-            ) : "Upload"}
+          <Button onClick={handleUpload} disabled={status === "uploading" || status === "processing"}>
+            {status === "uploading" && <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>}
+            {status === "processing" && <><FileText className="mr-2 h-4 w-4 animate-pulse" /> Analyzing...</>}
+            {status === "idle" && "Upload & Analyze"}
+            {status === "error" && "Try Again"}
           </Button>
-        </div>
-      )}
-
-      {status === "success" && (
-        <div className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 p-4 rounded-md flex items-center">
-          <CheckCircle2 className="h-5 w-5 mr-2" />
-          Resume uploaded successfully!
         </div>
       )}
 
