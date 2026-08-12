@@ -56,12 +56,12 @@ export async function updateProfile(userId: string, data: any) {
         await prisma.project.createMany({
           data: data.projects.map((p: any) => ({
             profileId: profile.id,
-            name: p.name,
-            description: p.description,
-            startDate: p.startDate,
-            endDate: p.endDate,
-            url: p.url,
-            technologies: p.technologies || []
+            name: p.name || "",
+            description: p.description || null,
+            startDate: p.startDate || null,
+            endDate: p.endDate || null,
+            url: p.url || null,
+            technologies: Array.isArray(p.technologies) ? p.technologies : []
           }))
         })
       }
@@ -77,12 +77,12 @@ export async function updateProfile(userId: string, data: any) {
         await prisma.experience.createMany({
           data: data.experiences.map((e: any) => ({
             profileId: profile.id,
-            company: e.company,
-            title: e.title,
-            startDate: e.startDate,
-            endDate: e.endDate,
-            description: e.description,
-            technologies: e.technologies || []
+            company: e.company || "",
+            title: e.title || "",
+            startDate: e.startDate || null,
+            endDate: e.endDate || null,
+            description: e.description || null,
+            technologies: Array.isArray(e.technologies) ? e.technologies : []
           }))
         })
       }
@@ -98,11 +98,11 @@ export async function updateProfile(userId: string, data: any) {
         await prisma.education.createMany({
           data: data.educations.map((e: any) => ({
             profileId: profile.id,
-            institution: e.institution,
-            degree: e.degree,
-            fieldOfStudy: e.fieldOfStudy,
-            startDate: e.startDate,
-            endDate: e.endDate,
+            institution: e.institution || "",
+            degree: e.degree || null,
+            fieldOfStudy: e.fieldOfStudy || null,
+            startDate: e.startDate || null,
+            endDate: e.endDate || null,
           }))
         })
       }

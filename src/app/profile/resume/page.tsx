@@ -57,11 +57,11 @@ export default async function ResumePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {resume.status === 'REVIEW_REQUIRED' && (
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/profile/resume/review?id=${resume.id}`}>
+                        <Link href={`/profile/resume/review?id=${resume.id}`}>
+                          <Button variant="outline" size="sm" type="button">
                             Review Data
-                          </Link>
-                        </Button>
+                          </Button>
+                        </Link>
                       )}
                       <form action={async () => {
                         "use server"

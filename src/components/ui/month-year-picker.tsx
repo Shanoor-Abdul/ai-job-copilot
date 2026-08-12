@@ -26,7 +26,8 @@ export function MonthYearPicker({ value, onChange, label, error }: MonthYearPick
   const safeMonth = MONTHS.includes(month) ? month : ""
   const safeYear = YEARS.includes(year) ? year : ""
 
-  const handleMonthChange = (newMonth: string) => {
+  const handleMonthChange = (newMonth: string | null) => {
+    if (!newMonth) return;
     if (newMonth === "Present") {
       onChange("Present")
     } else {
@@ -34,7 +35,8 @@ export function MonthYearPicker({ value, onChange, label, error }: MonthYearPick
     }
   }
 
-  const handleYearChange = (newYear: string) => {
+  const handleYearChange = (newYear: string | null) => {
+    if (!newYear) return;
     if (value === "Present") {
       onChange(`January ${newYear}`)
     } else {

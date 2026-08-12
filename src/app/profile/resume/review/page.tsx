@@ -33,7 +33,12 @@ export default async function ResumeReviewPage({
   }
 
   const profile = await prisma.profile.findUnique({
-    where: { userId: user.id }
+    where: { userId: user.id },
+    include: {
+      projects: true,
+      experiences: true,
+      educations: true,
+    }
   })
 
   return (

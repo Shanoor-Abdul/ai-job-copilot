@@ -48,12 +48,14 @@ type ProfileFormProps = {
   userId: string
 }
 
+type ProfileFormValues = z.infer<typeof profileSchema>
+
 export function ProfileForm({ initialData, userId }: ProfileFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  const form = useForm<z.infer<typeof profileSchema>>({
-    resolver: zodResolver(profileSchema),
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema) as any,
     defaultValues: {
       firstName: initialData?.firstName || "",
       lastName: initialData?.lastName || "",
