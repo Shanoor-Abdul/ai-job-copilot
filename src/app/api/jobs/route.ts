@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     let query = supabase.from("jobs").select("*").eq("is_active", true).order("published_at", { ascending: false, nullsFirst: false }).limit(limit);
     if (q) { const term = q.replace(/[%(),]/g, ""); query = query.or(`title.ilike.%${term}%,company_name.ilike.%${term}%,description.ilike.%${term}%`); }
     if (location) { const place = location.replace(/[%(),]/g, ""); query = query.or(`location_text.ilike.%${place}%,country.ilike.%${place}%,city.ilike.%${place}%`); }
-    if (source && ["greenhouse", "lever", "company_career", "other"].includes(source)) query = query.eq("source", source);
+    if (source && ["greenhouse", "lever", "ashby", "smartrecruiters", "company_career", "other"].includes(source)) query = query.eq("source", source);
     const { data, error } = await query;
     if (error) throw error;
     return NextResponse.json({ jobs: data ?? [], count: data?.length ?? 0 });

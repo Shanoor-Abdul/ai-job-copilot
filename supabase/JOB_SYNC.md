@@ -11,6 +11,7 @@ Run `supabase/migrations/20261022_job_sync_runs.sql` in Supabase SQL Editor. Thi
 Set server-only environment variables:
 - `GREENHOUSE_BOARD_TOKENS`: comma-separated Greenhouse board URL tokens.
 - `LEVER_SITE_NAMES`: comma-separated Lever site names.
+- `ASHBY_JOB_BOARD_NAMES`: comma-separated Ashby public job-board names (the slug from the employer Ashby-hosted job board URL).
 - `JOB_SYNC_SECRET`: a long random secret used by the trusted scheduler.
 
 Use actual public board/site identifiers. Never expose these secrets with a `NEXT_PUBLIC_` prefix.
@@ -37,6 +38,12 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/jobs/sync" -Heade
 ```
 
 Set `JOB_SYNC_SECRET` in your local environment before running. Never commit `.env.local`.
+
+## Regional coverage and licensed data providers
+
+Ashby is an additional public employer-by-employer feed. It does not enumerate all employers, so add only real board names for employers with relevant Saudi Arabia or UAE vacancies. Greenhouse, Lever, and Ashby public APIs return postings for configured employers; they are not global job-search indexes.
+
+A licensed aggregator is not wired in yet because the vendor and credentials have not been selected. Before implementing one, choose a provider whose contract explicitly permits displaying and redistributing job listings to users in Saudi Arabia and the UAE, then implement its documented API. Keep API keys server-side. Do not scrape restricted portals or redistribute data outside the provider license.
 
 ## Current scope
 

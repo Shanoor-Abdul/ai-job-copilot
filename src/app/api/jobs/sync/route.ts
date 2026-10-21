@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fetchGreenhouse, fetchLever } from "@/lib/jobs/connectors";
+import { fetchGreenhouse, fetchLever, fetchAshby } from "@/lib/jobs/connectors";
 import type { NormalizedJob } from "@/lib/jobs/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-type SourceResult = { source: "greenhouse" | "lever"; board: string; fetched: number; error?: string };
+type SourceResult = { source: "greenhouse" | "lever" | "ashby"; board: string; fetched: number; error?: string };
 
 export async function POST(request: NextRequest) {
   const secret = process.env.JOB_SYNC_SECRET;
@@ -14,8 +14,9 @@ export async function POST(request: NextRequest) {
   }
   const greenhouseBoards = (process.env.GREENHOUSE_BOARD_TOKENS || "").split(",").map((s) => s.trim()).filter(Boolean);
   const leverSites = (process.env.LEVER_SITE_NAMES || "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!greenhouseBoards.length && !leverSites.length) {
-    return NextResponse.json({ error: "No sources configured. Set GREENHOUSE_BOARD_TOKENS or LEVER_SITE_NAMES." }, { status: 400 });
+  const ashbyBoards = (process.env.ASHBY_JOB_BOARD_NAMES || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (!greenhouseBoards.length && !leverSites.length && !ashbyBoards.length) {
+    return NextResponse.json({ error: "No sources configured. Set GREENHOUSE_BOARD_TOKENS, LEVER_SITE_NAMES, or ASHBY_JOB_BOARD_NAMES." }, { status: 400 });
   }
 
   const startedAt = new Date().toISOString();
@@ -47,6 +48,16 @@ export async function POST(request: NextRequest) {
       results.push({ source: "lever", board: site, fetched: rows.length });
     } catch (error) {
       results.push({ source: "lever", board: site, fetched: 0, error: error instanceof Error ? error.message : "Fetch failed" });
+    }
+  }
+
+  for (const board of ashbyBoards) {
+    try {
+      const rows = await fetchAshby(board);
+      normalized.push(...rows);
+      results.push({ source: "ashby", board, fetched: rows.length });
+    } catch (error) {
+      results.push({ source: "ashby", board, fetched: 0, error: error instanceof Error ? error.message : "Fetch failed" });
     }
   }
 
