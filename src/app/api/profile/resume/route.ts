@@ -43,7 +43,7 @@ export async function GET() {
 
     const { data, error: signedUrlError } = await admin.storage
       .from(BUCKET)
-      .createSignedUrl(profile.resume_path, 60);
+      .createSignedUrl(profile.resume_path, 600);
 
     if (signedUrlError) throw signedUrlError;
 
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     const { data: signed, error: signedError } = await admin.storage
       .from(BUCKET)
-      .createSignedUrl(storagePath, 60);
+      .createSignedUrl(storagePath, 600);
 
     if (signedError) throw signedError;
 

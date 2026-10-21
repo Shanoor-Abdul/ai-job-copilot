@@ -56,7 +56,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (authError) throw authError;
       }
 
-      router.replace("/");
+      router.replace("/dashboard");
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Authentication failed. Please try again.");
