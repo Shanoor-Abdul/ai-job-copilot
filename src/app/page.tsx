@@ -1,11 +1,12 @@
 import {
   Activity, ArrowUpRight, Bell, BriefcaseBusiness, CheckCircle2, ChevronDown,
   CircleHelp, FileText, Filter, LayoutDashboard, MapPin, Search, Settings2,
-  Sparkles, Target, TrendingUp, UploadCloud, Zap
+  Sparkles, Target, TrendingUp, Zap
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreJob } from "@/lib/jobs/scoring";
 import type { JobRecord } from "@/lib/jobs/types";
+import { ResumeManager } from "@/components/resume-manager";
 
 async function getJobs(): Promise<JobRecord[]> {
   try {
@@ -114,10 +115,7 @@ export default async function Home() {
             </section>
           </div>
 
-          <section id="profile" className="scroll-mt-6 rounded-2xl border border-white/[0.08] bg-[#0d111b] p-5 md:p-6">
-            <div className="flex items-center gap-3"><div className="rounded-xl bg-white/[0.04] p-2.5 text-slate-300"><UploadCloud size={19}/></div><div><h2 className="font-semibold">Your career profile</h2><p className="mt-1 text-xs text-slate-500">Resume upload and profile persistence are the next integration step.</p></div></div>
-            <div className="mt-4 flex flex-col justify-between gap-4 rounded-xl border border-dashed border-white/[0.12] p-5 sm:flex-row sm:items-center"><div><div className="text-sm font-medium">Add your latest resume</div><p className="mt-1 text-xs text-slate-500">PDF or DOCX · Keep your personal information private.</p></div><span className="inline-flex items-center gap-2 self-start rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400"><UploadCloud size={14}/> Upload not connected</span></div>
-          </section>
+          <ResumeManager />
           <footer className="flex flex-col justify-between gap-2 border-t border-white/[0.07] pt-5 text-[11px] text-slate-600 sm:flex-row"><span>Saudi Job Copilot · Personal workspace</span><span>Source-backed listings · Review-first applications</span></footer>
         </div>
       </section>
