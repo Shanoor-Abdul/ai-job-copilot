@@ -30,7 +30,7 @@ Personal job discovery and application-preparation MVP for Saudi Arabia, initial
 1. Install Node.js 20+ and a package manager.
 2. Create a Supabase project.
 3. In Supabase SQL Editor, run `supabase/schema.sql` once.
-4. Run `supabase/migrations/20261021_private_resume_storage.sql` in the Supabase SQL Editor.
+4. Run `supabase/migrations/20261021_private_resume_storage.sql` and `supabase/migrations/20261022_job_sync_runs.sql` in the Supabase SQL Editor.
 5. Copy `.env.example` to `.env.local` and fill in Supabase URL, anon key, service role key, and a strong sync secret. To enable Claude analysis, add your Anthropic Console API key as `ANTHROPIC_API_KEY` (server-side only); `ANTHROPIC_MODEL` is optional. A Claude chat subscription does not automatically include API usage or billing.
 6. In Supabase Authentication settings, configure the local site URL (usually `http://localhost:3000`) and production URL. Add `http://localhost:3000/auth/callback` and your production `/auth/callback` URL to the allowed redirect URLs. If email confirmation is enabled, confirm the account before signing in.
 7. Install dependencies and start the app:
@@ -58,7 +58,7 @@ curl -X POST http://localhost:3000/api/jobs/sync \
   -H "Authorization: Bearer YOUR_JOB_SYNC_SECRET"
 ```
 
-For production, invoke this endpoint from a trusted scheduler (e.g. GitHub Actions cron or your hosting scheduler). Never expose the sync secret to browser code. Consider moving ingestion to a dedicated worker if source count or volume grows.
+For production, the repository includes `.github/workflows/job-sync.yml`, which can call the endpoint every six hours. Configure the GitHub Actions repository secrets `JOB_COPILOT_APP_URL` and `JOB_SYNC_SECRET`, then use **Actions → Automated job collection → Run workflow** for a manual test. Follow `supabase/JOB_SYNC.md` for the complete setup. Syncs write jobs in batches of 100 and return per-source status. Never expose the sync secret to browser code. Scheduled runs require the deployed app to be reachable and the source identifiers to be configured on that app host.
 
 ## AI job-fit analysis
 
