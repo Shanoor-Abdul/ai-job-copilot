@@ -9,12 +9,23 @@ import { scoreJob } from "@/lib/jobs/scoring";
 import type { JobRecord } from "@/lib/jobs/types";
 import { ResumeManager } from "@/components/resume-manager";
 import { AIJobAnalysis } from "@/components/ai-job-analysis";
+import { JobExplorer } from "@/components/job-explorer";
 
 async function getJobs(): Promise<JobRecord[]> {
   try {
     const supabase = createAdminClient();
-    const { data } = await supabase.from("jobs").select("*").eq("is_active", true).order("published_at", { ascending: false, nullsFirst: false }).limit(100);
-    return (data ?? []) as JobRecord[];
+    const allJobs: JobRecord[] = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase.from("jobs").select("*").eq("is_active", true)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      const batch = (data ?? []) as JobRecord[];
+      allJobs.push(...batch);
+      if (batch.length < pageSize) break;
+    }
+    return allJobs;
   } catch {
     return [];
   }
@@ -34,18 +45,21 @@ export default async function Home() {
   const displayName = fullName || user?.email?.split("@")[0] || "Job seeker";
   const userInitials = initials(displayName);
   let hasResume = false;
+  let techStack: string[] = [];
   if (user) {
     try {
       const admin = createAdminClient();
-      const { data: profile } = await admin.from("profiles").select("resume_path").eq("id", user.id).maybeSingle();
+      const { data: profile } = await admin.from("profiles").select("resume_path, tech_stack").eq("id", user.id).maybeSingle();
       hasResume = Boolean(profile?.resume_path && profile.resume_path.startsWith(`${user.id}/`));
+      techStack = Array.isArray(profile?.tech_stack) ? profile.tech_stack.filter((skill): skill is string => typeof skill === "string") : [];
     } catch { hasResume = false; }
   }
   const sourcesConnected = Boolean(process.env.GREENHOUSE_BOARD_TOKENS || process.env.LEVER_SITE_NAMES);
   const readinessCount = 2 + Number(hasResume) + Number(sourcesConnected);
   const readinessPercent = Math.round((readinessCount / 4) * 100);
   const readinessLabel = readinessCount === 4 ? "Profile ready" : "Setup needed";
-  const jobs = (await getJobs()).map((job) => ({ ...job, match: scoreJob(job) })).sort((a, b) => b.match.score - a.match.score);
+  const allJobs = await getJobs();
+  const jobs = allJobs.map((job) => ({ ...job, match: scoreJob(job) })).sort((a, b) => b.match.score - a.match.score);
   const saudiJobs = jobs.filter((j) => /saudi|riyadh|jeddah|dammam|khobar|dhahran|mecca|medina/i.test(`${j.country || ""} ${j.location_text || ""}`));
   const strongMatches = saudiJobs.filter((j) => j.match.score >= 65);
   const sourceCount = new Set(jobs.map((j) => j.source)).size;
@@ -104,16 +118,14 @@ export default async function Home() {
           <section className="relative overflow-hidden rounded-2xl border border-violet-400/15 bg-[#111323] p-5 md:p-7">
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl"/>
             <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-              <div><div className="flex items-center gap-2 text-xs font-medium text-violet-300"><Sparkles size={14}/> YOUR COPILOT PROFILE</div><h2 className="mt-3 text-xl font-semibold">Built around your tech stack</h2><p className="mt-2 max-w-lg text-sm leading-6 text-slate-400">Prioritize React, Next.js and TypeScript roles in Riyadh. Match scores are currently based on transparent keyword and location signals.</p><div className="mt-5 flex flex-wrap gap-2">{["React","Next.js","TypeScript","JavaScript","Tailwind CSS","Frontend"].map((skill)=><span key={skill} className="rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs text-slate-300">{skill}</span>)}</div></div>
+              <div><div className="flex items-center gap-2 text-xs font-medium text-violet-300"><Sparkles size={14}/> YOUR COPILOT PROFILE</div><h2 className="mt-3 text-xl font-semibold">Built around your tech stack</h2><p className="mt-2 max-w-lg text-sm leading-6 text-slate-400">Prioritize React, Next.js and TypeScript roles in Riyadh. Match scores are currently based on transparent keyword and location signals.</p><div className="mt-5 flex flex-wrap gap-2">{(techStack.length ? techStack : ["Add your skills below"]).map((skill)=><span key={skill} className="rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs text-slate-300">{skill}</span>)}</div></div>
               <div className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><div className="flex items-center justify-between"><span className="text-xs text-slate-400">Profile readiness</span><span className={`text-xs font-medium ${readinessCount === 4 ? "text-emerald-300" : "text-amber-300"}`}>{readinessLabel}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400 transition-all" style={{width:`${readinessPercent}%`}}/></div><div className="mt-4 space-y-3"><ProfileCheck done label="Target roles selected"/><ProfileCheck done label="Saudi location preference"/><ProfileCheck done={hasResume} label={hasResume ? "Resume uploaded" : "Upload your latest resume"}/><ProfileCheck done={sourcesConnected} label={sourcesConnected ? "Job sources connected" : "Connect job sources"}/></div><a href="#profile" className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2.5 text-xs font-medium hover:bg-white/[0.04]">{hasResume ? "Manage profile" : "Complete profile"} <ArrowUpRight size={13}/></a></div>
             </div>
           </section>
 
           <section id="jobs" className="scroll-mt-6">
-            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><h2 className="text-lg font-semibold">Recommended opportunities</h2><p className="mt-1 text-xs text-slate-500">Ranked for your frontend stack and Saudi location preferences.</p></div><button className="inline-flex items-center gap-2 self-start rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/[0.04]"><Filter size={14}/> Filters <ChevronDown size={13}/></button></div>
-            <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/[0.08] bg-[#0d111b] px-4 py-3"><Search size={17} className="shrink-0 text-slate-500"/><input id="job-search" placeholder="Search titles, companies or skills..." className="w-full bg-transparent text-sm outline-none placeholder:text-slate-600"/><kbd className="hidden rounded border border-white/10 px-1.5 py-1 text-[10px] text-slate-500 sm:block">⌘ K</kbd></div>
-            {jobs.length === 0 ? <div className="rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.015] px-6 py-14 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-300/15 bg-violet-500/[0.08] text-violet-300"><BriefcaseBusiness size={24}/></div><h3 className="mt-4 text-base font-semibold">Your job feed is ready to be connected</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">No live jobs have been imported yet. Configure authorized Greenhouse or Lever board identifiers and run the first sync to populate this feed with source-backed listings.</p><a href="#sources" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-semibold text-slate-900 hover:bg-slate-200">Set up job sources <ArrowUpRight size={14}/></a></div> :
-              <div className="grid gap-3 xl:grid-cols-2">{jobs.slice(0,12).map((job)=><article key={job.id} className="rounded-xl border border-white/[0.08] bg-[#0d111b] p-4 transition hover:border-violet-300/25"><div className="flex gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-semibold text-slate-300">{initials(job.company_name)}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{job.title}</h3><p className="mt-1 text-xs text-slate-400">{job.company_name}</p></div><div className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.07] px-2.5 py-1 text-xs font-semibold text-emerald-300">{job.match.score}% match</div></div><div className="mt-3 flex flex-wrap gap-3 text-[11px] text-slate-500"><span className="inline-flex items-center gap-1"><MapPin size={12}/>{job.location_text || "Location not specified"}</span><span>{timeAgo(job.published_at)}</span><span className="capitalize">{job.source}</span></div><div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3"><span className="text-[11px] text-slate-500">{job.match.reasons.slice(0,2).join(" · ") || "Review match details"}</span><a target="_blank" rel="noreferrer" href={job.apply_url} className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-violet-300 hover:text-violet-200">View job <ArrowUpRight size={13}/></a></div><AIJobAnalysis job={{ title: job.title, company: job.company_name, location: job.location_text || "", description: job.description || "" }} /></div></div></article>)}</div>}
+            <div className="mb-4"><h2 className="text-lg font-semibold">Jobs matched to your profile</h2><p className="mt-1 text-xs text-slate-500">Search every imported active listing, customize your technology stack, and compare the strongest matches first.</p></div>
+            <JobExplorer jobs={allJobs} initialTechStack={techStack} />
           </section>
 
           <div className="grid gap-5 xl:grid-cols-2">
