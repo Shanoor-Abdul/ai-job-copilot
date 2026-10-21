@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Download, FileText, LoaderCircle, LogOut, Trash2, UploadCloud } from "lucide-react";
+import { CheckCircle2, FileText, LoaderCircle, LogOut, Trash2, UploadCloud, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 
 type SavedResume = {
@@ -17,6 +18,7 @@ type ApiResponse = {
 };
 
 export function ResumeManager() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [resume, setResume] = useState<SavedResume | null>(null);\n  const [displayName, setDisplayName] = useState("");\n  const [email, setEmail] = useState("");
   const [signedIn, setSignedIn] = useState(false);
