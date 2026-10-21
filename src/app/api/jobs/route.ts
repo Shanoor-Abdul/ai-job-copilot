@@ -5,15 +5,15 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") || "").trim().slice(0, 120);
-  const city = (searchParams.get("city") || "").trim().slice(0, 80);
+  const location = (searchParams.get("location") || searchParams.get("city") || "").trim().slice(0, 80);
   const source = searchParams.get("source");
   const limit = Math.min(Math.max(Number(searchParams.get("limit") || 50), 1), 100);
 
   try {
     const supabase = createAdminClient();
     let query = supabase.from("jobs").select("*").eq("is_active", true).order("published_at", { ascending: false, nullsFirst: false }).limit(limit);
-    if (q) query = query.or(`title.ilike.%${q.replace(/[%(),]/g, "")}%,company_name.ilike.%${q.replace(/[%(),]/g, "")}%`);
-    if (city) query = query.ilike("location_text", `%${city}%`);
+    if (q) { const term = q.replace(/[%(),]/g, ""); query = query.or(`title.ilike.%${term}%,company_name.ilike.%${term}%,description.ilike.%${term}%`); }
+    if (location) { const place = location.replace(/[%(),]/g, ""); query = query.or(`location_text.ilike.%${place}%,country.ilike.%${place}%,city.ilike.%${place}%`); }
     if (source && ["greenhouse", "lever", "company_career", "other"].includes(source)) query = query.eq("source", source);
     const { data, error } = await query;
     if (error) throw error;

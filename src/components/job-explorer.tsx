@@ -37,6 +37,11 @@ export function JobExplorer({ jobs, initialTechStack }: { jobs: Job[]; initialTe
   const [draftSkill, setDraftSkill] = useState("");
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [appliedLocation, setAppliedLocation] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [jobResults, setJobResults] = useState<Job[]>(jobs);
   const [source, setSource] = useState("all");
   const [sort, setSort] = useState("match");
   const [matchedOnly, setMatchedOnly] = useState(false);
@@ -75,10 +80,33 @@ export function JobExplorer({ jobs, initialTechStack }: { jobs: Job[]; initialTe
     void persistSkills(skills.filter((item) => item !== skill));
   }
 
-  const scored = useMemo(() => jobs.map((job) => ({ job, ...score(job, skills) })), [jobs, skills]);
+  async function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSearching(true);
+    setSearchError("");
+    try {
+      const params = new URLSearchParams({ limit: "100" });
+      if (query.trim()) params.set("q", query.trim());
+      if (location.trim()) params.set("location", location.trim());
+      if (source !== "all") params.set("source", source);
+      const response = await fetch(`/api/jobs?${params.toString()}`, { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not search jobs.");
+      setJobResults(Array.isArray(body.jobs) ? body.jobs : []);
+      setAppliedQuery(query.trim());
+      setAppliedLocation(location.trim());
+      setPage(1);
+    } catch (error) {
+      setSearchError(error instanceof Error ? error.message : "Could not search jobs.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  const scored = useMemo(() => jobResults.map((job) => ({ job, ...score(job, skills) })), [jobResults, skills]);
   const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    const place = location.trim().toLowerCase();
+    const term = appliedQuery.toLowerCase();
+    const place = appliedLocation.toLowerCase();
     return scored.filter(({ job, matched }) => {
       const searchable = `${job.title} ${job.company_name} ${job.description || ""} ${job.location_text || ""}`.toLowerCase();
       return (!term || searchable.includes(term))
@@ -88,7 +116,7 @@ export function JobExplorer({ jobs, initialTechStack }: { jobs: Job[]; initialTe
     }).sort((a, b) => sort === "newest"
       ? new Date(b.job.published_at || 0).getTime() - new Date(a.job.published_at || 0).getTime()
       : b.score - a.score);
-  }, [scored, query, location, source, sort, matchedOnly]);
+  }, [scored, appliedQuery, appliedLocation, source, sort, matchedOnly]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -108,14 +136,17 @@ export function JobExplorer({ jobs, initialTechStack }: { jobs: Job[]; initialTe
       <div className="mt-4 border-t border-white/[0.06] pt-3"><p className="mb-2 text-[11px] text-slate-500">Quick add</p><div className="flex flex-wrap gap-2">{SUGGESTED_SKILLS.filter((skill) => !skills.some((item) => normalize(item) === normalize(skill))).slice(0, 12).map((skill) => <button key={skill} type="button" onClick={() => void persistSkills([...skills, skill])} className="rounded-lg border border-white/[0.08] px-2.5 py-1.5 text-xs text-slate-400 hover:border-violet-300/30 hover:text-white">+ {skill}</button>)}</div></div>
     </div>
 
-    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto]">
-      <label className="flex min-w-0 items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0d111b] px-3"><Search size={16} className="shrink-0 text-slate-500"/><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Search jobs, companies or skills" className="min-w-0 w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-600"/></label>
-      <label className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0d111b] px-3"><MapPin size={15} className="text-slate-500"/><input value={location} onChange={(event) => { setLocation(event.target.value); setPage(1); }} placeholder="Location" className="min-w-0 w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-600"/></label>
-      <select value={source} onChange={(event) => { setSource(event.target.value); setPage(1); }} aria-label="Filter by source" className="rounded-xl border border-white/[0.08] bg-[#0d111b] px-3 py-3 text-xs text-slate-300"><option value="all">All sources</option><option value="greenhouse">Greenhouse</option><option value="lever">Lever</option><option value="other">Other</option><option value="company_career">Company careers</option></select>
-      <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Sort jobs" className="rounded-xl border border-white/[0.08] bg-[#0d111b] px-3 py-3 text-xs text-slate-300"><option value="match">Best match</option><option value="newest">Newest</option></select>
-    </div>
+    <form onSubmit={submitSearch} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto]">
+      <label className="flex min-w-0 items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0d111b] px-3"><Search size={16} className="shrink-0 text-slate-500"/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, company or skills" className="min-w-0 w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-600"/></label>
+      <label className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0d111b] px-3"><MapPin size={15} className="text-slate-500"/><input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="City or country (Riyadh, UAE, India)" className="min-w-0 w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-600"/></label>
+      <select value={source} onChange={(event) => setSource(event.target.value)} aria-label="Filter by source" className="rounded-xl border border-white/[0.08] bg-[#0d111b] px-3 py-3 text-xs text-slate-300"><option value="all">All sources</option><option value="greenhouse">Greenhouse</option><option value="lever">Lever</option><option value="other">Other</option><option value="company_career">Company careers</option></select>
+      <button type="submit" disabled={searching} className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 py-3 text-xs font-semibold text-white disabled:opacity-60"><Search size={14}/>{searching ? "Searching…" : "Search jobs"}</button>
+      <div className="sm:col-span-4 flex justify-end"><select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Sort jobs" className="rounded-xl border border-white/[0.08] bg-[#0d111b] px-3 py-3 text-xs text-slate-300"><option value="match">Best match</option><option value="newest">Newest</option></select></div>
+    </form>
+    {searchError && <p role="alert" className="text-xs text-rose-300">{searchError}</p>}
+    <p className="text-xs text-slate-500">Search covers imported listings. Add more authorized company boards to expand coverage across Saudi Arabia, the UAE, India and worldwide.</p>
     <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400"><span>{filtered.length} jobs · {skills.length} profile skills</span><button type="button" onClick={() => { setMatchedOnly(!matchedOnly); setPage(1); }} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 ${matchedOnly ? "border-violet-300/30 bg-violet-400/10 text-violet-200" : "border-white/10 text-slate-400"}`}><SlidersHorizontal size={13}/>{matchedOnly ? "Showing skill matches" : "Show skill matches only"}</button></div>
-    {visible.length === 0 ? <div className="rounded-xl border border-dashed border-white/[0.1] p-10 text-center"><p className="text-sm font-medium">No jobs match these filters</p><p className="mt-1 text-xs text-slate-500">Try another keyword or location, or show all jobs.</p><button type="button" onClick={() => { setQuery(""); setLocation(""); setSource("all"); setMatchedOnly(false); setPage(1); }} className="mt-3 rounded-lg border border-white/10 px-3 py-2 text-xs">Clear filters</button></div> : <div className="grid gap-3 xl:grid-cols-2">{visible.map(({ job, score: matchScore, matched }) => <article key={job.id} className="rounded-xl border border-white/[0.08] bg-[#0d111b] p-4 transition hover:border-violet-300/25"><div className="flex gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-semibold text-slate-300">{job.company_name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{job.title}</h3><p className="mt-1 text-xs text-slate-400">{job.company_name}</p></div><span className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.07] px-2.5 py-1 text-xs font-semibold text-emerald-300">{matchScore}% match</span></div><div className="mt-3 flex flex-wrap gap-3 text-[11px] text-slate-500"><span className="inline-flex items-center gap-1"><MapPin size={12}/>{job.location_text || "Location not specified"}</span><span>{timeAgo(job.published_at)}</span><span className="capitalize">{job.source.replace("_", " ")}</span></div>{matched.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{matched.slice(0, 6).map((skill) => <span key={skill} className="rounded-md bg-violet-400/[0.08] px-2 py-1 text-[10px] text-violet-200">{skill}</span>)}</div>}<div className="mt-3 flex items-center justify-end border-t border-white/[0.06] pt-3"><a target="_blank" rel="noreferrer" href={job.apply_url} className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-violet-300 hover:text-violet-200">View job <ArrowUpRight size={13}/></a></div></div></div></article>)}</div>}
+    {visible.length === 0 ? <div className="rounded-xl border border-dashed border-white/[0.1] p-10 text-center"><p className="text-sm font-medium">No jobs match these filters</p><p className="mt-1 text-xs text-slate-500">Try another keyword or location, or show all jobs.</p><button type="button" onClick={() => { setQuery(""); setLocation(""); setAppliedQuery(""); setAppliedLocation(""); setSource("all"); setMatchedOnly(false); setJobResults(jobs); setPage(1); }} className="mt-3 rounded-lg border border-white/10 px-3 py-2 text-xs">Clear filters</button></div> : <div className="grid gap-3 xl:grid-cols-2">{visible.map(({ job, score: matchScore, matched }) => <article key={job.id} className="rounded-xl border border-white/[0.08] bg-[#0d111b] p-4 transition hover:border-violet-300/25"><div className="flex gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-semibold text-slate-300">{job.company_name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{job.title}</h3><p className="mt-1 text-xs text-slate-400">{job.company_name}</p></div><span className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.07] px-2.5 py-1 text-xs font-semibold text-emerald-300">{matchScore}% match</span></div><div className="mt-3 flex flex-wrap gap-3 text-[11px] text-slate-500"><span className="inline-flex items-center gap-1"><MapPin size={12}/>{job.location_text || "Location not specified"}</span><span>{timeAgo(job.published_at)}</span><span className="capitalize">{job.source.replace("_", " ")}</span></div>{matched.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{matched.slice(0, 6).map((skill) => <span key={skill} className="rounded-md bg-violet-400/[0.08] px-2 py-1 text-[10px] text-violet-200">{skill}</span>)}</div>}<div className="mt-3 flex items-center justify-end border-t border-white/[0.06] pt-3"><a target="_blank" rel="noreferrer" href={job.apply_url} className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-violet-300 hover:text-violet-200">View job <ArrowUpRight size={13}/></a></div></div></div></article>)}</div>}
     {filtered.length > PAGE_SIZE && <div className="flex items-center justify-center gap-3 pt-2"><button type="button" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)} className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-xs disabled:opacity-40"><ChevronLeft size={14}/>Previous</button><span className="text-xs text-slate-500">Page {currentPage} of {pageCount}</span><button type="button" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)} className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-xs disabled:opacity-40">Next<ChevronRight size={14}/></button></div>}
   </div>;
 }
