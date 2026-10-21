@@ -34,7 +34,10 @@ export async function GET() {
       .maybeSingle();
 
     if (error) throw error;
-    if (!profile?.resume_path) return NextResponse.json({ resume: null });
+    const metadataName = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "";
+    const storedFileName = profile?.resume_path?.split("/").pop()?.replace(/^[0-9a-f-]{36}-/i, "").replace(/.(pdf|docx)$/i, "").replace(/[_-]+/g, " ").trim() || "";
+    const displayName = metadataName || storedFileName || user.email?.split("@")[0] || "Job seeker";
+    if (!profile?.resume_path) return NextResponse.json({ resume: null, displayName, email: user.email ?? null });
 
     // Never create a download URL for a path outside this user's private folder.
     if (!profile.resume_path.startsWith(`${user.id}/`)) {
@@ -43,13 +46,15 @@ export async function GET() {
 
     const { data, error: signedUrlError } = await admin.storage
       .from(BUCKET)
-      .createSignedUrl(profile.resume_path, 60);
+      .createSignedUrl(profile.resume_path, 600);
 
     if (signedUrlError) throw signedUrlError;
 
     return NextResponse.json({
+      displayName,
+      email: user.email ?? null,
       resume: {
-        fileName: profile.resume_path.split("/").pop() ?? "resume",
+        fileName: profile.resume_path.split("/").pop()?.replace(/^[0-9a-f-]{36}-/i, "") ?? "resume",
         downloadUrl: data.signedUrl,
       },
     });
@@ -141,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     const { data: signed, error: signedError } = await admin.storage
       .from(BUCKET)
-      .createSignedUrl(storagePath, 60);
+      .createSignedUrl(storagePath, 600);
 
     if (signedError) throw signedError;
 
