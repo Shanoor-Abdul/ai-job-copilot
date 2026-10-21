@@ -21,6 +21,27 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const isRegister = mode === "register";
 
+  async function resendConfirmation() {
+    if (!confirmationEmail) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const supabase = createClient();
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: confirmationEmail,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (resendError) throw resendError;
+      setNotice("Confirmation email requested. Check your inbox and spam/junk folder.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not resend confirmation email.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
