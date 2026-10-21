@@ -18,6 +18,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   const isRegister = mode === "register";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -42,7 +43,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (authError) throw authError;
 
         if (!data.session) {
-          setNotice("Account request received. Check your email to confirm your account, then sign in.");
+          setConfirmationEmail(email.trim());
+          setNotice("Your account was created, but email confirmation is still required by Supabase. Check spam/junk, or resend the confirmation email below.");
           return;
         }
       } else {
@@ -95,7 +97,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             </label>
 
             {error && <p role="alert" className="rounded-lg border border-rose-400/20 bg-rose-400/[0.07] px-3 py-2.5 text-sm text-rose-200">{error}</p>}
-            {notice && <p role="status" className="rounded-lg border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2.5 text-sm leading-5 text-emerald-200">{notice}</p>}
+            {notice && <div role="status" className="space-y-2 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2.5 text-sm leading-5 text-emerald-200"><p>{notice}</p>{isRegister && confirmationEmail && <button type="button" onClick={resendConfirmation} disabled={busy} className="font-semibold underline underline-offset-4 disabled:opacity-50">Resend confirmation email</button>}</div>}
 
             <button disabled={busy} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 py-3 text-sm font-semibold transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-60">
               {busy && <LoaderCircle size={16} className="animate-spin" />}

@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     if (uploadError) throw uploadError;
 
     const { error: profileError } = await admin.from("profiles").upsert(
-      { id: user.id, resume_path: storagePath },
+      { id: user.id, resume_path: storagePath, full_name: existingProfile?.full_name?.trim() || (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") || safeOriginalName.replace(/\\.(pdf|docx)$/i, "").replace(/[_-]+/g, " ").trim() },
       { onConflict: "id" },
     );
 
