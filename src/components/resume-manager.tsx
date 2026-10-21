@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, FileText, LoaderCircle, LogOut, Trash2, UploadCloud, ExternalLink } from "lucide-react";
+import { CheckCircle2, FileText, LoaderCircle, LogOut, Trash2, UploadCloud, ExternalLink, X, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 
 type SavedResume = {
@@ -29,6 +29,7 @@ export function ResumeManager() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [openingResume, setOpeningResume] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -122,14 +123,26 @@ export function ResumeManager() {
       const response = await fetch("/api/profile/resume", { cache: "no-store" });
       const body = (await response.json()) as ApiResponse;
       if (!response.ok || !body.resume?.downloadUrl) throw new Error(body.error || "Could not create a fresh resume link.");
-      const opened = window.open(body.resume.downloadUrl, "_blank", "noopener,noreferrer");
-      if (!opened) window.location.assign(body.resume.downloadUrl);
+      setPreviewUrl(body.resume.downloadUrl);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not open your resume.");
     } finally {
       setOpeningResume(false);
     }
   }
+
+  useEffect(() => {
+    if (!previewUrl) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setPreviewUrl(null);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [previewUrl]);
 
   async function signOut() {
     setBusy(true);
@@ -212,6 +225,47 @@ export function ResumeManager() {
             </div>
             <p className="mt-2 text-[11px] text-slate-500">PDF or DOCX · Maximum 5 MB. Your file is not publicly accessible.</p>
           </form>
+        </div>
+      )}
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Resume preview"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPreviewUrl(null);
+          }}
+        >
+          <div className="flex h-[min(92vh,1000px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0d111b] shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 sm:px-5">
+              <div className="flex min-w-0 items-center gap-2">
+                <FileText size={17} className="shrink-0 text-violet-300" />
+                <div className="truncate text-sm font-medium">Resume preview</div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <a href={previewUrl} download={resume?.fileName || "resume"} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/[0.05]">
+                  <Download size={13} /> Download
+                </a>
+                <button type="button" onClick={() => setPreviewUrl(null)} aria-label="Close resume preview" className="rounded-lg border border-white/10 p-2 text-slate-300 hover:bg-white/[0.06] hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            {resume?.fileName.toLowerCase().endsWith(".pdf") ? (
+              <iframe title="Resume PDF preview" src={previewUrl} className="min-h-0 flex-1 bg-white" />
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+                <FileText size={36} className="text-violet-300" />
+                <h3 className="mt-4 text-base font-semibold">DOCX preview isn’t supported in this browser view</h3>
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">You can download your Word resume, or close this preview and upload a PDF to view it directly here.</p>
+                <a href={previewUrl} download={resume?.fileName || "resume.docx"} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-violet-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-400">
+                  <Download size={15} /> Download resume
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
