@@ -1,0 +1,44 @@
+name: Automated job collection
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automated-job-collection
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate required secrets
+        env:
+          APP_URL: ${{ secrets.JOB_COPILOT_APP_URL }}
+          JOB_SYNC_SECRET: ${{ secrets.JOB_SYNC_SECRET }}
+        run: |
+          test -n "$APP_URL" || (echo "Missing repository secret JOB_COPILOT_APP_URL" && exit 1)
+          test -n "$JOB_SYNC_SECRET" || (echo "Missing repository secret JOB_SYNC_SECRET" && exit 1)
+      - name: Sync Greenhouse and Lever listings
+        env:
+          APP_URL: ${{ secrets.JOB_COPILOT_APP_URL }}
+          JOB_SYNC_SECRET: ${{ secrets.JOB_SYNC_SECRET }}
+        run: |
+          set -euo pipefail
+          response_file="$(mktemp)"
+          status_code="$(curl --silent --show-error --max-time 75 \
+            --output "$response_file" --write-out "%{http_code}" \
+            --request POST "${APP_URL%/}/api/jobs/sync" \
+            --header "Authorization: Bearer $JOB_SYNC_SECRET" \
+            --header "Content-Type: application/json")"
+          cat "$response_file"
+          echo
+          if [ "$status_code" -lt 200 ] || [ "$status_code" -ge 300 ]; then
+            echo "Job sync failed with HTTP status $status_code"
+            exit 1
+          fi
