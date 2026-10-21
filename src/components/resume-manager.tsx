@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Download, FileText, LoaderCircle, LogOut, Trash2, UploadCloud } from "lucide-react";
+import { CheckCircle2, FileText, LoaderCircle, LogOut, Trash2, UploadCloud, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 
 type SavedResume = {
@@ -14,11 +15,17 @@ type ApiResponse = {
   error?: string;
   message?: string;
   resume?: SavedResume | null;
+  displayName?: string | null;
+  email?: string | null;
 };
 
 export function ResumeManager() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [resume, setResume] = useState<SavedResume | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [openingResume, setOpeningResume] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -36,12 +43,16 @@ export function ResumeManager() {
       if (response.status === 401) {
         setSignedIn(false);
         setResume(null);
+        setDisplayName("");
+        setEmail("");
         return;
       }
       if (!response.ok) throw new Error(body.error || "Could not load your resume.");
 
       setSignedIn(true);
       setResume(body.resume ?? null);
+      setDisplayName(body.displayName || "");
+      setEmail(body.email || "");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load your resume.");
     } finally {
@@ -104,6 +115,22 @@ export function ResumeManager() {
     }
   }
 
+  async function openResume() {
+    setOpeningResume(true);
+    setError("");
+    try {
+      const response = await fetch("/api/profile/resume", { cache: "no-store" });
+      const body = await response.json() as ApiResponse;
+      if (!response.ok || !body.resume?.downloadUrl) throw new Error(body.error || "Could not create a fresh resume link.");
+      const opened = window.open(body.resume.downloadUrl, "_blank", "noopener,noreferrer");
+      if (!opened) window.location.assign(body.resume.downloadUrl);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not open your resume.");
+    } finally {
+      setOpeningResume(false);
+    }
+  }
+
   async function signOut() {
     setBusy(true);
     setError("");
@@ -113,7 +140,11 @@ export function ResumeManager() {
       if (signOutError) throw signOutError;
       setSignedIn(false);
       setResume(null);
+      setDisplayName("");
+      setEmail("");
       setMessage("You have been signed out.");
+      router.replace("/");
+      router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not sign out.");
     } finally {
@@ -127,8 +158,8 @@ export function ResumeManager() {
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-white/[0.04] p-2.5 text-slate-300"><UploadCloud size={19} /></div>
           <div>
-            <h2 className="font-semibold">Your career profile</h2>
-            <p className="mt-1 text-xs text-slate-500">Upload and privately manage the resume you use for applications.</p>
+            <h2 className="font-semibold">{signedIn && displayName ? `Welcome, ${displayName}` : "Your career profile"}</h2>
+            <p className="mt-1 text-xs text-slate-500">{signedIn ? `${email || "Signed in"} · Manage your private resume and job search.` : "Upload and privately manage the resume you use for applications."}</p>
           </div>
         </div>
         {signedIn && (
@@ -158,7 +189,7 @@ export function ResumeManager() {
                 <div className="min-w-0"><div className="truncate text-sm font-medium">{resume.fileName}</div><div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-300"><CheckCircle2 size={12} /> Saved in private storage</div></div>
               </div>
               <div className="flex shrink-0 gap-2">
-                <a href={resume.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/[0.04]"><Download size={13} /> Open</a>
+                <button type="button" onClick={openResume} disabled={openingResume || busy} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/[0.04] disabled:opacity-60">{openingResume ? <LoaderCircle size={13} className="animate-spin" /> : <ExternalLink size={13} />} {openingResume ? "Opening…" : "Open"}</button>
                 <button type="button" onClick={deleteResume} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/20 px-3 py-2 text-xs text-rose-200 hover:bg-rose-400/[0.06] disabled:opacity-50"><Trash2 size={13} /> Delete</button>
               </div>
             </div>
