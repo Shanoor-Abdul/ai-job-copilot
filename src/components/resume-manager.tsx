@@ -14,13 +14,17 @@ type SavedResume = {
 type ApiResponse = {
   error?: string;
   message?: string;
-  resume?: SavedResume | null;\n  displayName?: string | null;\n  email?: string | null;
+  resume?: SavedResume | null;
+  displayName?: string | null;
+  email?: string | null;
 };
 
 export function ResumeManager() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [resume, setResume] = useState<SavedResume | null>(null);\n  const [displayName, setDisplayName] = useState("");\n  const [email, setEmail] = useState("");
+  const [resume, setResume] = useState<SavedResume | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [signedIn, setSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
