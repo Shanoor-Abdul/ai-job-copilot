@@ -15,6 +15,7 @@ Personal job discovery and application-preparation MVP for Saudi Arabia, initial
 - Job search API and dashboard search/filtering
 - Initial application tracker schema
 - Job match scoring heuristic for frontend stack relevance and Saudi location
+- Optional Claude-powered job-fit analysis for signed-in users, with strengths, gaps, and suggested next steps
 - Application workflow designed for human review before submission
 
 ## Not included yet
@@ -30,7 +31,7 @@ Personal job discovery and application-preparation MVP for Saudi Arabia, initial
 2. Create a Supabase project.
 3. In Supabase SQL Editor, run `supabase/schema.sql` once.
 4. Run `supabase/migrations/20261021_private_resume_storage.sql` in the Supabase SQL Editor.
-5. Copy `.env.example` to `.env.local` and fill in Supabase URL, anon key, service role key, and a strong sync secret.
+5. Copy `.env.example` to `.env.local` and fill in Supabase URL, anon key, service role key, and a strong sync secret. To enable Claude analysis, add your Anthropic Console API key as `ANTHROPIC_API_KEY` (server-side only); `ANTHROPIC_MODEL` is optional. A Claude chat subscription does not automatically include API usage or billing.
 6. In Supabase Authentication settings, configure the local site URL (usually `http://localhost:3000`) and production URL. Add `http://localhost:3000/auth/callback` and your production `/auth/callback` URL to the allowed redirect URLs. If email confirmation is enabled, confirm the account before signing in.
 7. Install dependencies and start the app:
 
@@ -58,6 +59,10 @@ curl -X POST http://localhost:3000/api/jobs/sync \
 ```
 
 For production, invoke this endpoint from a trusted scheduler (e.g. GitHub Actions cron or your hosting scheduler). Never expose the sync secret to browser code. Consider moving ingestion to a dedicated worker if source count or volume grows.
+
+## AI job-fit analysis
+
+Signed-in users can request an on-demand Claude analysis from a job card. It evaluates the listing against the app’s default target profile (experienced frontend developer focused on React, Next.js, TypeScript, JavaScript, and Saudi roles) and returns strengths, potential gaps, and a suggested next step. This initial version does **not** read the uploaded resume contents. Claude is called only when the user clicks the analysis button, and the API key stays on the server. Without `ANTHROPIC_API_KEY`, the endpoint returns a clear configuration error; normal keyword matching continues to work.
 
 ## API
 
