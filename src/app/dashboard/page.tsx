@@ -4,6 +4,7 @@ import {
   Sparkles, Target, TrendingUp, Zap
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { scoreJob } from "@/lib/jobs/scoring";
 import type { JobRecord } from "@/lib/jobs/types";
 import { ResumeManager } from "@/components/resume-manager";
@@ -27,6 +28,11 @@ function timeAgo(date: string | null) {
 }
 
 export default async function Home() {
+  const supabaseAuth = await createClient();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "";
+  const displayName = fullName || user?.email?.split("@")[0] || "Job seeker";
+  const userInitials = initials(displayName);
   const jobs = (await getJobs()).map((job) => ({ ...job, match: scoreJob(job) })).sort((a, b) => b.match.score - a.match.score);
   const saudiJobs = jobs.filter((j) => /saudi|riyadh|jeddah|dammam|khobar|dhahran|mecca|medina/i.test(`${j.country || ""} ${j.location_text || ""}`));
   const strongMatches = saudiJobs.filter((j) => j.match.score >= 65);
@@ -58,8 +64,8 @@ export default async function Home() {
           <a href="#sources" className="mt-3 flex items-center gap-1 text-xs font-medium text-violet-300">Configure sources <ArrowUpRight size={13}/></a>
         </div>
         <div className="mt-5 flex items-center gap-3 border-t border-white/[0.07] pt-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold">SA</div>
-          <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">Your workspace</div><div className="text-xs text-slate-500">Personal account</div></div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold">{userInitials}</div>
+          <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{displayName}</div><div className="truncate text-xs text-slate-500">{user?.email || "Personal account"}</div></div>
           <CircleHelp size={16} className="text-slate-500"/>
         </div>
       </aside>
@@ -67,7 +73,7 @@ export default async function Home() {
       <section className="min-w-0 flex-1">
         <header className="flex h-[76px] items-center justify-between border-b border-white/[0.07] px-5 md:px-9">
           <div><div className="text-xs text-slate-500">Workspace <span className="px-1.5">/</span> <span className="text-slate-300">Overview</span></div><div className="mt-1 text-sm font-medium">Your job search, in one place</div></div>
-          <div className="flex items-center gap-3"><button aria-label="Notifications" className="relative rounded-xl border border-white/[0.08] p-2.5 text-slate-400 hover:text-white"><Bell size={17}/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-violet-400"/></button><div className="hidden h-8 w-px bg-white/10 sm:block"/><div className="hidden text-right sm:block"><div className="text-xs font-medium">Saudi Arabia</div><div className="text-[11px] text-slate-500">Riyadh · GMT+3</div></div><div className="flex h-9 w-9 items-center justify-center rounded-full border border-violet-300/20 bg-violet-500/15 text-xs font-semibold text-violet-200">SA</div></div>
+          <div className="flex items-center gap-3"><button aria-label="Notifications" className="relative rounded-xl border border-white/[0.08] p-2.5 text-slate-400 hover:text-white"><Bell size={17}/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-violet-400"/></button><div className="hidden h-8 w-px bg-white/10 sm:block"/><div className="hidden text-right sm:block"><div className="text-xs font-medium">Saudi Arabia</div><div className="text-[11px] text-slate-500">Riyadh · GMT+3</div></div><div className="flex h-9 w-9 items-center justify-center rounded-full border border-violet-300/20 bg-violet-500/15 text-xs font-semibold text-violet-200">{userInitials}</div></div>
         </header>
 
         <div className="mx-auto max-w-[1440px] space-y-7 p-5 md:p-9">
