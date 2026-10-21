@@ -33,6 +33,24 @@ export default async function Home() {
   const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "";
   const displayName = fullName || user?.email?.split("@")[0] || "Job seeker";
   const userInitials = initials(displayName);
+  let hasResume = false;
+  if (user) {
+    try {
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("resume_path")
+        .eq("id", user.id)
+        .maybeSingle();
+      hasResume = Boolean(profile?.resume_path && profile.resume_path.startsWith(`${user.id}/`));
+    } catch {
+      hasResume = false;
+    }
+  }
+  const sourcesConnected = Boolean(process.env.GREENHOUSE_BOARD_TOKENS || process.env.LEVER_SITE_NAMES);
+  const readinessCount = 2 + Number(hasResume) + Number(sourcesConnected);
+  const readinessPercent = Math.round((readinessCount / 4) * 100);
+  const readinessLabel = readinessCount === 4 ? "Profile ready" : "Setup needed";
   const jobs = (await getJobs()).map((job) => ({ ...job, match: scoreJob(job) })).sort((a, b) => b.match.score - a.match.score);
   const saudiJobs = jobs.filter((j) => /saudi|riyadh|jeddah|dammam|khobar|dhahran|mecca|medina/i.test(`${j.country || ""} ${j.location_text || ""}`));
   const strongMatches = saudiJobs.filter((j) => j.match.score >= 65);
@@ -93,7 +111,7 @@ export default async function Home() {
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl"/>
             <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
               <div><div className="flex items-center gap-2 text-xs font-medium text-violet-300"><Sparkles size={14}/> YOUR COPILOT PROFILE</div><h2 className="mt-3 text-xl font-semibold">Built around your tech stack</h2><p className="mt-2 max-w-lg text-sm leading-6 text-slate-400">Prioritize React, Next.js and TypeScript roles in Riyadh. Match scores are currently based on transparent keyword and location signals.</p><div className="mt-5 flex flex-wrap gap-2">{["React","Next.js","TypeScript","JavaScript","Tailwind CSS","Frontend"].map((skill)=><span key={skill} className="rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs text-slate-300">{skill}</span>)}</div></div>
-              <div className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><div className="flex items-center justify-between"><span className="text-xs text-slate-400">Profile readiness</span><span className="text-xs font-medium text-amber-300">Setup needed</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]"><div className="h-full w-[38%] rounded-full bg-gradient-to-r from-violet-500 to-indigo-400"/></div><div className="mt-4 space-y-3"><ProfileCheck done label="Target roles selected"/><ProfileCheck done label="Saudi location preference"/><ProfileCheck label="Upload your latest resume"/><ProfileCheck label="Connect job sources"/></div><a href="#profile" className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2.5 text-xs font-medium hover:bg-white/[0.04]">Complete profile <ArrowUpRight size={13}/></a></div>
+              <div className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><div className="flex items-center justify-between"><span className="text-xs text-slate-400">Profile readiness</span><span className={`text-xs font-medium ${readinessCount === 4 ? "text-emerald-300" : "text-amber-300"}`}>{readinessLabel}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400 transition-all" style={{ width: `${readinessPercent}%` }}/></div><div className="mt-4 space-y-3"><ProfileCheck done label="Target roles selected"/><ProfileCheck done label="Saudi location preference"/><ProfileCheck done={hasResume} label={hasResume ? "Resume uploaded" : "Upload your latest resume"}/><ProfileCheck done={sourcesConnected} label={sourcesConnected ? "Job sources connected" : "Connect job sources"}/></div><a href="#profile" className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2.5 text-xs font-medium hover:bg-white/[0.04]">{hasResume ? "Manage profile" : "Complete profile"} <ArrowUpRight size={13}/></a></div>
             </div>
           </section>
 
