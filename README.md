@@ -31,7 +31,7 @@ Personal job discovery and application-preparation MVP for Saudi Arabia, initial
 3. In Supabase SQL Editor, run `supabase/schema.sql` once.
 4. Run `supabase/migrations/20261021_private_resume_storage.sql` in the Supabase SQL Editor.
 5. Copy `.env.example` to `.env.local` and fill in Supabase URL, anon key, service role key, and a strong sync secret.
-6. In Supabase Authentication settings, configure the local site URL (usually `http://localhost:3000`) and production URL. If email confirmation is enabled, confirm the account before signing in.
+6. In Supabase Authentication settings, configure the local site URL (usually `http://localhost:3000`) and production URL. Add `http://localhost:3000/auth/callback` and your production `/auth/callback` URL to the allowed redirect URLs. If email confirmation is enabled, confirm the account before signing in.
 7. Install dependencies and start the app:
 
    ```bash
