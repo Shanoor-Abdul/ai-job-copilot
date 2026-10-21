@@ -29,7 +29,7 @@ export async function GET() {
     const admin = createAdminClient();
     const { data: profile, error } = await admin
       .from("profiles")
-      .select("resume_path")
+      .select("resume_path, full_name")
       .eq("id", user.id)
       .maybeSingle();
 
