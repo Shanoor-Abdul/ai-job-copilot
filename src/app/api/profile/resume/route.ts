@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     if (readError) throw readError;
 
-    const { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
+    const { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, Buffer.from(bytes), {
       contentType,
       cacheControl: "3600",
       upsert: false,
