@@ -34,7 +34,7 @@ export async function GET() {
       .maybeSingle();
 
     if (error) throw error;
-    if (!profile?.resume_path) return NextResponse.json({ resume: null });
+    if (!profile?.resume_path) return NextResponse.json({ resume: null, displayName: profile?.full_name?.trim() || (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") || null, email: user.email ?? null });
 
     // Never create a download URL for a path outside this user's private folder.
     if (!profile.resume_path.startsWith(`${user.id}/`)) {
@@ -52,6 +52,8 @@ export async function GET() {
         fileName: profile.resume_path.split("/").pop() ?? "resume",
         downloadUrl: data.signedUrl,
       },
+      displayName: profile.full_name?.trim() || (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") || null,
+      email: user.email ?? null,
     });
   } catch {
     return jsonError("Resume storage is not configured. Apply the resume storage migration and check server environment variables.", 503);
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     const { data: existingProfile, error: readError } = await admin
       .from("profiles")
-      .select("resume_path")
+      .select("resume_path, full_name")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
     if (uploadError) throw uploadError;
 
     const { error: profileError } = await admin.from("profiles").upsert(
-      { id: user.id, resume_path: storagePath, full_name: existingProfile?.full_name?.trim() || (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") || safeOriginalName.replace(/\\.(pdf|docx)$/i, "").replace(/[_-]+/g, " ").trim() },
+      { id: user.id, resume_path: storagePath, full_name: existingProfile?.full_name?.trim() || (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") || safeOriginalName.replace(/\.(pdf|docx)$/i, "").replace(/[_-]+/g, " ").trim() },
       { onConflict: "id" },
     );
 
@@ -162,7 +164,7 @@ export async function DELETE() {
     const admin = createAdminClient();
     const { data: profile, error: readError } = await admin
       .from("profiles")
-      .select("resume_path")
+      .select("resume_path, full_name")
       .eq("id", user.id)
       .maybeSingle();
 
