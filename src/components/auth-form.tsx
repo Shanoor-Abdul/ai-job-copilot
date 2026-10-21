@@ -33,7 +33,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         const { data, error: authError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { full_name: fullName.trim() } },
+          options: {
+            data: { full_name: fullName.trim() },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
 
         if (authError) throw authError;
