@@ -28,6 +28,7 @@ export function ResumeManager() {
   const [signedIn, setSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [openingResume, setOpeningResume] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
