@@ -1,4 +1,4 @@
-export type JobSource = "greenhouse" | "lever" | "company_career" | "other";
+export type JobSource = "greenhouse" | "lever" | "ashby" | "company_career" | "other";
 
 export type NormalizedJob = {
   source: JobSource;
